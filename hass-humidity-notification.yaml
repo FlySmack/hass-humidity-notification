@@ -17,7 +17,7 @@ blueprint:
           step: 5.0
     update_frequency:
       name: Update frequency every XX minutes
-      description: Update frequency every xx minutes. Value must be provided with leading '/' and cannot be higher then 59
+      description: Update frequency every xx minutes. Value must be provided with leading '/' and cannot be higher then 59.
       default: "/15"
       selector:
         text:
@@ -56,6 +56,8 @@ trigger:
   - platform: time_pattern
     id: temp_update
     minutes: !input update_frequency
+condition:
+- '{{ sensors != '''' }}'
 action:
 - choose: []
   default: !input actions
