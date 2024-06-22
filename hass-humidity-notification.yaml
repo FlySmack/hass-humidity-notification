@@ -23,8 +23,7 @@ blueprint:
         text:
     exclude:
       name: Excluded Sensors
-      description: Battery sensors (e.g. smartphone) to exclude from detection. Only
-        entities are supported, devices must be expanded!
+      description: Humidity sensors (e.g. smartphone) to exclude from detection. Only entities are supported, devices must be expanded!
       default:
         entity_id: []
       selector:
