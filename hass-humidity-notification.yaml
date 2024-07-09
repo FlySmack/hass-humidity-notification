@@ -34,6 +34,7 @@ blueprint:
     user_conditions:
       name: (Optional) Additional Condition(s)
       description: In case of additional conditions must be met, they can be defined here
+      default:
       selector:
         condition:
     actions:
