@@ -3,6 +3,7 @@ blueprint:
   description: Regularly test all sensors with 'humidity' device-class for crossing
     a certain humidity level threshold and if so execute an action.
   domain: automation
+  source_url: https://github.com/FlySmack/hass-humidity-notification
   input:
     threshold:
       name: Humidity warning level threshold
@@ -34,16 +35,15 @@ blueprint:
     user_conditions:
       name: (Optional) Additional Condition(s)
       description: In case of additional conditions must be met, they can be defined here
-      default:
+      default: []
       selector:
-        condition:
+        condition: {}
     actions:
       name: Actions
       description: Notifications or similar to be run. {{sensors}} is replaced with
         the names of sensors are above humidity threshold.
       selector:
         action: {}
-  source_url: https://github.com/FlySmack/hass-humidity-notification
 variables:
   threshold: !input threshold
   exclude: !input exclude
@@ -66,10 +66,9 @@ trigger:
     id: temp_update
     minutes: !input update_frequency
 condition:
-- and
-    - '{{ sensors != '''' }}'
-    - !input user_conditions
+  - '{{ sensors != '''' }}'
 action:
-- choose: []
-  default: !input actions
+- choose:
+  - conditions: !input user_conditions
+    sequence: !input actions
 mode: single
