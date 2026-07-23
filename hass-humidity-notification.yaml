@@ -51,16 +51,19 @@ variables:
     {% set result = namespace(sensors=[]) %}
     {% for state in states.sensor | selectattr('attributes.device_class', '==', 'humidity') %}
         {% if 0 <= state.state | int(-1) > threshold | int and not state.entity_id in exclude.entity_id %}
-            {% set result.sensors = result.sensors + [state.name ~ ' (' ~ state.state ~ ' %)'] %}
+            {% set area = area_name(state.entity_id) %}
+            {% set name = area ~ ' ' ~ state.name if area else state.name %}
+            {% set result.sensors = result.sensors + [name ~ ' (' ~ state.state ~ ' %)'] %}
         {% endif %}
     {% endfor %}
     {% for state in states.binary_sensor | selectattr('attributes.device_class', '==', 'humidity') | selectattr('state', '==', 'on') %}
         {% if not state.entity_id in exclude.entity_id %}
-            {% set result.sensors = result.sensors + [state.name] %}
+            {% set area = area_name(state.entity_id) %}
+            {% set name = area ~ ' ' ~ state.name if area else state.name %}
+            {% set result.sensors = result.sensors + [name] %}
         {% endif %}
     {% endfor %}
     {{result.sensors|join(', ')}}
-
 trigger:
   - platform: time_pattern
     id: temp_update
