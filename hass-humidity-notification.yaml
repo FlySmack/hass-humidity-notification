@@ -3,7 +3,7 @@ blueprint:
   description: Regularly test all sensors with 'humidity' device-class for crossing
     a certain humidity level threshold and if so execute an action.
   domain: automation
-  source_url: https://github.com/FlySmack/hass-humidity-notification
+  source_url: https://github.com/FlySmack/hass-humidity-notification/blob/main/hass-humidity-notification.yaml
   input:
     threshold:
       name: Humidity warning level threshold
