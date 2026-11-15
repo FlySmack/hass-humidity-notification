@@ -1,13 +1,15 @@
-# Version: 1.1.0
+# Version: 1.2.0
 blueprint:
   name: Humidity threshold detection & notification for all humidity sensors
   description: >
     Regularly test all sensors with 'humidity' device-class for crossing
     a certain humidity level threshold and if so execute an action.
-    Version 1.1.0 - Uses entity_name(), device_name() and area_name() for
-    full context in notifications (Area › Device › Entity).
+    Version 1.2.0 - Exclude supports entities, devices, areas, floors and labels
+    via the modern HA target selector. Area › Device › Entity context in notifications.
   domain: automation
   source_url: https://github.com/FlySmack/hass-humidity-notification/blob/main/hass-humidity-notification.yaml
+  homeassistant:
+    min_version: "2024.6.0"
   input:
     threshold:
       name: Humidity warning level threshold
@@ -28,14 +30,15 @@ blueprint:
         text:
     exclude:
       name: Excluded Sensors
-      description: Humidity sensors (e.g. smartphone) to exclude from detection. Only entities are supported, devices must be expanded!
-      default:
-        entity_id: []
+      description: >
+        Humidity sensors to exclude from detection. Supports individual entities,
+        devices, areas, floors and labels — use the full target selector.
+      default: {}
       selector:
         target:
           entity:
-          - device_class:
-            - humidity
+            - device_class:
+              - humidity
     user_conditions:
       name: (Optional) Additional Condition(s)
       description: In case of additional conditions must be met, they can be defined here
@@ -51,10 +54,43 @@ blueprint:
 variables:
   threshold: !input threshold
   exclude: !input exclude
+  excluded_ids: >
+    {% set excl_entities = exclude.entity_id if exclude.entity_id is defined else [] %}
+    {% set excl_devices  = exclude.device_id  if exclude.device_id  is defined else [] %}
+    {% set excl_areas    = exclude.area_id    if exclude.area_id    is defined else [] %}
+    {% set excl_floors   = exclude.floor_id   if exclude.floor_id   is defined else [] %}
+    {% set excl_labels   = exclude.label_id   if exclude.label_id   is defined else [] %}
+    {% set ns = namespace(ids=[]) %}
+    {% for eid in excl_entities %}
+      {% set ns.ids = ns.ids + [eid] %}
+    {% endfor %}
+    {% for did in excl_devices %}
+      {% for eid in device_entities(did) %}
+        {% set ns.ids = ns.ids + [eid] %}
+      {% endfor %}
+    {% endfor %}
+    {% for aid in excl_areas %}
+      {% for eid in area_entities(aid) %}
+        {% set ns.ids = ns.ids + [eid] %}
+      {% endfor %}
+    {% endfor %}
+    {% for fid in excl_floors %}
+      {% for aid in floor_areas(fid) %}
+        {% for eid in area_entities(aid) %}
+          {% set ns.ids = ns.ids + [eid] %}
+        {% endfor %}
+      {% endfor %}
+    {% endfor %}
+    {% for lid in excl_labels %}
+      {% for eid in label_entities(lid) %}
+        {% set ns.ids = ns.ids + [eid] %}
+      {% endfor %}
+    {% endfor %}
+    {{ ns.ids | unique | list }}
   sensors: >
     {% set result = namespace(sensors=[]) %}
     {% for state in states.sensor | selectattr('attributes.device_class', '==', 'humidity') %}
-        {% if 0 <= state.state | int(-1) > threshold | int and not state.entity_id in exclude.entity_id %}
+        {% if 0 <= state.state | int(-1) > threshold | int and not state.entity_id in excluded_ids %}
             {% set area = area_name(state.entity_id) %}
             {% set device = device_name(state.entity_id) %}
             {% set entity = entity_name(state.entity_id) %}
@@ -63,7 +99,7 @@ variables:
         {% endif %}
     {% endfor %}
     {% for state in states.binary_sensor | selectattr('attributes.device_class', '==', 'humidity') | selectattr('state', '==', 'on') %}
-        {% if not state.entity_id in exclude.entity_id %}
+        {% if not state.entity_id in excluded_ids %}
             {% set area = area_name(state.entity_id) %}
             {% set device = device_name(state.entity_id) %}
             {% set entity = entity_name(state.entity_id) %}
