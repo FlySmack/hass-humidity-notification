@@ -1,11 +1,11 @@
-# Version: 1.3.0
+# Version: 1.3.1
 blueprint:
   name: Humidity threshold detection & notification for all humidity sensors
   description: >
     Regularly test all sensors with 'humidity' device-class for crossing
     a certain humidity level threshold and if so execute an action.
-    Version 1.3.0 - Exclude supports entities, devices, areas, floors and labels
-    via the modern HA target selector, including "Exclude target" sub-exclusions.
+    Version 1.3.1 - Fix: excluded_ids parsed via from_json() to ensure list
+    type for correct 'in' operator behaviour.
     Area › Device › Entity context in notifications.
   domain: automation
   source_url: https://github.com/FlySmack/hass-humidity-notification/blob/main/hass-humidity-notification.yaml
@@ -117,11 +117,12 @@ variables:
         {% set ns.not_ids = ns.not_ids + [eid] %}
       {% endfor %}
     {% endfor %}
-    {{ ns.ids | unique | reject('in', ns.not_ids) | list }}
+    {{ ns.ids | unique | reject('in', ns.not_ids) | list | to_json }}
   sensors: >
+    {% set excl = excluded_ids | from_json %}
     {% set result = namespace(sensors=[]) %}
     {% for state in states.sensor | selectattr('attributes.device_class', '==', 'humidity') %}
-        {% if 0 <= state.state | int(-1) > threshold | int and not state.entity_id in excluded_ids %}
+        {% if 0 <= state.state | int(-1) > threshold | int and not state.entity_id in excl %}
             {% set area = area_name(state.entity_id) %}
             {% set device = device_name(state.entity_id) %}
             {% set entity = entity_name(state.entity_id) %}
@@ -130,7 +131,7 @@ variables:
         {% endif %}
     {% endfor %}
     {% for state in states.binary_sensor | selectattr('attributes.device_class', '==', 'humidity') | selectattr('state', '==', 'on') %}
-        {% if not state.entity_id in excluded_ids %}
+        {% if not state.entity_id in excl %}
             {% set area = area_name(state.entity_id) %}
             {% set device = device_name(state.entity_id) %}
             {% set entity = entity_name(state.entity_id) %}
