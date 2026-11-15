@@ -1,12 +1,11 @@
-# Version: 1.3.1
+# Version: 1.3.2
 blueprint:
   name: Humidity threshold detection & notification for all humidity sensors
   description: >
     Regularly test all sensors with 'humidity' device-class for crossing
     a certain humidity level threshold and if so execute an action.
-    Version 1.3.1 - Fix: excluded_ids parsed via from_json() to ensure list
-    type for correct 'in' operator behaviour.
-    Area › Device › Entity context in notifications.
+    Version 1.3.2 - Fix: trim whitespace before from_json(); fix threshold
+    operator precedence. Area › Device › Entity context in notifications.
   domain: automation
   source_url: https://github.com/FlySmack/hass-humidity-notification/blob/main/hass-humidity-notification.yaml
   homeassistant:
@@ -119,10 +118,10 @@ variables:
     {% endfor %}
     {{ ns.ids | unique | reject('in', ns.not_ids) | list | to_json }}
   sensors: >
-    {% set excl = excluded_ids | from_json %}
+    {% set excl = excluded_ids | trim | from_json %}
     {% set result = namespace(sensors=[]) %}
     {% for state in states.sensor | selectattr('attributes.device_class', '==', 'humidity') %}
-        {% if 0 <= state.state | int(-1) > threshold | int and not state.entity_id in excl %}
+        {% if state.state | int(-1) >= 0 and state.state | int > threshold | int and not state.entity_id in excl %}
             {% set area = area_name(state.entity_id) %}
             {% set device = device_name(state.entity_id) %}
             {% set entity = entity_name(state.entity_id) %}
