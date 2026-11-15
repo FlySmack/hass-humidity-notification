@@ -1,7 +1,11 @@
+# Version: 1.1.0
 blueprint:
   name: Humidity threshold detection & notification for all humidity sensors
-  description: Regularly test all sensors with 'humidity' device-class for crossing
+  description: >
+    Regularly test all sensors with 'humidity' device-class for crossing
     a certain humidity level threshold and if so execute an action.
+    Version 1.1.0 - Uses entity_name(), device_name() and area_name() for
+    full context in notifications (Area › Device › Entity).
   domain: automation
   source_url: https://github.com/FlySmack/hass-humidity-notification/blob/main/hass-humidity-notification.yaml
   input:
@@ -52,15 +56,19 @@ variables:
     {% for state in states.sensor | selectattr('attributes.device_class', '==', 'humidity') %}
         {% if 0 <= state.state | int(-1) > threshold | int and not state.entity_id in exclude.entity_id %}
             {% set area = area_name(state.entity_id) %}
-            {% set name = area ~ ' ' ~ state.name if area else state.name %}
-            {% set result.sensors = result.sensors + [name ~ ' (' ~ state.state ~ ' %)'] %}
+            {% set device = device_name(state.entity_id) %}
+            {% set entity = entity_name(state.entity_id) %}
+            {% set parts = ([area] if area else []) + ([device] if device and device != entity else []) + [entity] %}
+            {% set result.sensors = result.sensors + [parts | join(' › ') ~ ' (' ~ state.state ~ ' %)'] %}
         {% endif %}
     {% endfor %}
     {% for state in states.binary_sensor | selectattr('attributes.device_class', '==', 'humidity') | selectattr('state', '==', 'on') %}
         {% if not state.entity_id in exclude.entity_id %}
             {% set area = area_name(state.entity_id) %}
-            {% set name = area ~ ' ' ~ state.name if area else state.name %}
-            {% set result.sensors = result.sensors + [name] %}
+            {% set device = device_name(state.entity_id) %}
+            {% set entity = entity_name(state.entity_id) %}
+            {% set parts = ([area] if area else []) + ([device] if device and device != entity else []) + [entity] %}
+            {% set result.sensors = result.sensors + [parts | join(' › ')] %}
         {% endif %}
     {% endfor %}
     {{result.sensors|join(', ')}}
