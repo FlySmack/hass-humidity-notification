@@ -1,11 +1,11 @@
-# Version: 1.3.3
+# Version: 1.3.4
 blueprint:
   name: Humidity threshold detection & notification for all humidity sensors
   description: >
     Regularly test all sensors with 'humidity' device-class for crossing
     a certain humidity level threshold and if so execute an action.
-    Version 1.3.3 - Fix: use exclude.exclude.* (HA 2026.11 target exclude
-    syntax) instead of non-existent not_*_id keys.
+    Version 1.3.4 - Fix: coerce all single-string target IDs to list before
+    iterating (HA allows single ID or list for every target key).
     Area › Device › Entity context in notifications.
   domain: automation
   source_url: https://github.com/FlySmack/hass-humidity-notification/blob/main/hass-humidity-notification.yaml
@@ -56,17 +56,27 @@ variables:
   threshold: !input threshold
   exclude: !input exclude
   excluded_ids: >
-    {% set excl_entities = exclude.entity_id     if exclude.entity_id     is defined else [] %}
-    {% set excl_devices  = exclude.device_id     if exclude.device_id     is defined else [] %}
-    {% set excl_areas    = exclude.area_id       if exclude.area_id       is defined else [] %}
-    {% set excl_floors   = exclude.floor_id      if exclude.floor_id      is defined else [] %}
-    {% set excl_labels   = exclude.label_id              if exclude.label_id              is defined else [] %}
-    {% set excl_sub      = exclude.exclude               if exclude.exclude               is defined else {} %}
-    {% set not_entities  = excl_sub.entity_id            if excl_sub.entity_id            is defined else [] %}
-    {% set not_devices   = excl_sub.device_id            if excl_sub.device_id            is defined else [] %}
-    {% set not_areas     = excl_sub.area_id              if excl_sub.area_id              is defined else [] %}
-    {% set not_floors    = excl_sub.floor_id             if excl_sub.floor_id             is defined else [] %}
-    {% set not_labels    = excl_sub.label_id             if excl_sub.label_id             is defined else [] %}
+    {% set _ei  = exclude.entity_id  if exclude.entity_id  is defined else [] %}
+    {% set _di  = exclude.device_id  if exclude.device_id  is defined else [] %}
+    {% set _ai  = exclude.area_id    if exclude.area_id    is defined else [] %}
+    {% set _fi  = exclude.floor_id   if exclude.floor_id   is defined else [] %}
+    {% set _li  = exclude.label_id   if exclude.label_id   is defined else [] %}
+    {% set excl_entities = [_ei] if _ei is string else _ei %}
+    {% set excl_devices  = [_di] if _di is string else _di %}
+    {% set excl_areas    = [_ai] if _ai is string else _ai %}
+    {% set excl_floors   = [_fi] if _fi is string else _fi %}
+    {% set excl_labels   = [_li] if _li is string else _li %}
+    {% set excl_sub      = exclude.exclude if exclude.exclude is defined else {} %}
+    {% set _nei = excl_sub.entity_id if excl_sub.entity_id is defined else [] %}
+    {% set _ndi = excl_sub.device_id if excl_sub.device_id is defined else [] %}
+    {% set _nai = excl_sub.area_id   if excl_sub.area_id   is defined else [] %}
+    {% set _nfi = excl_sub.floor_id  if excl_sub.floor_id  is defined else [] %}
+    {% set _nli = excl_sub.label_id  if excl_sub.label_id  is defined else [] %}
+    {% set not_entities  = [_nei] if _nei is string else _nei %}
+    {% set not_devices   = [_ndi] if _ndi is string else _ndi %}
+    {% set not_areas     = [_nai] if _nai is string else _nai %}
+    {% set not_floors    = [_nfi] if _nfi is string else _nfi %}
+    {% set not_labels    = [_nli] if _nli is string else _nli %}
     {% set ns = namespace(ids=[], not_ids=[]) %}
     {% for eid in excl_entities %}
       {% set ns.ids = ns.ids + [eid] %}
